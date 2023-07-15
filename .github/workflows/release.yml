@@ -34,6 +34,7 @@ jobs:
       - name: Get previous release tag
         id: previous_release
         run: |
+          git fetch --tags --prune --depth=1
           previous_tag=$(git describe --tags --match 'v[0-9]*' --abbrev=0 "${{ github.sha }}^")
           echo "::set-output name=tag::$previous_tag"
 
