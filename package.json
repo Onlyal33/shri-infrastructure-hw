@@ -31,7 +31,7 @@
         "eject": "react-scripts eject",
         "test": "react-scripts test",
         "lint": "npx eslint .",
-        "playwright-ci": "npx playwright install --with-deps && npx playwright test",
+        "playwright-ci": "npx playwright install --with-deps && npx playwright test --project=chromium",
         "e2e": "playwright test --project=chromium",
         "e2e:report": "playwright test --project=chromium && playwright show-report",
         "test-ci": "CI=true npm test -- --reporters=\"default\" --reporters=\"jest-html-reporter\" --reporters=\"jest-teamcity\""

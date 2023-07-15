@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      issue_id: ${{ steps.release_issue.outputs.data.number }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get current release tag info
+        id: current_release
+        run: |
+          current_tag=${{ github.ref }}
+          tag_info=$(git show -s --format='{"Version": "%(tag)\nAuthor": "%(authorname)\nDate": "%(authordate)"}' $current_tag)
+          echo "::set-output name=current_release::$tag_info"
+          echo "::set-output name=tag::$current_tag"
+
+      - name: Get previous release tag
+        id: previous_release
+        run: |
+          previous_tag=$(git describe --tags --match 'v[0-9]*' --abbrev=0 HEAD^ "${{ github.sha }}^")
+          echo "::set-output name=tag::$previous_tag"
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          previous_tag=${{ steps.previous_release.outputs.tag }}
+          current_tag=${{ steps.current_release.outputs.tag }}
+          changelog=$(git log --pretty=full $previous_tag..$current_tag)
+          echo "::set-output name=changelog::$changelog"
+
+      - name: Create or update release issue
+        uses: octokit/request-action@v2.x
+        id: release_issue
+        with:
+          route: POST /repos/${{ github.repository }}/issues
+          headers:
+            authorization: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            {
+              "title": "Release ",
+              "body": "${{ steps.current_release.outputs.tag_info }}, Changelog:\n\n${{ steps.changelog.outputs.changelog }}",
+              "labels": ["RELEASE"]
+            }
+
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: release
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.deployment.outputs.page_url }}
+      run_id: ${{ steps.set_deployment_outputs.outputs.run_id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: './build'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
+      - name: Set deployment outputs
+        id: set_deployment_outputs
+        run: |
+          echo "::set-output name=run_id::${{ github.run_id }}"
+
+  post-deploy:
+    needs: [release, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get job summary
+        id: get_job_summary
+        run: |
+          job_summary=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ needs.deploy.outputs.run_id }}/jobs")
+          echo "::set-output name=job_summary::$job_summary"
+      - name: Add deployment info to release issue
+        uses: octokit/request-action@v2.x
+        with:
+          route: POST /repos/${{ github.repository }}/issues/${{ needs.release.outputs.issue_id }}/comments
+          headers:
+            authorization: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            {
+              "body": "Deployment info: [link to gh-pages]${{ needs.deploy.outputs.url }}/n${{ steps.get_job_summary.outputs.job_summary }}/n"
+            }
+      - name: Close release issue
+        uses: octokit/request-action@v2.x
+        with:
+          route: PATCH /repos/${{ github.repository }}/issues/${{ needs.release.outputs.issue_id }}
+          headers:
+            authorization: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            {
+              "state": "closed"
+            }
