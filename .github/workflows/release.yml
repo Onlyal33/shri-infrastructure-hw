@@ -34,8 +34,9 @@ jobs:
       - name: Get previous release tag
         id: previous_release
         run: |
-          git fetch --all
-          previous_tag=$(git describe --tags --match 'v[0-9]*' --abbrev=0 "${{ github.sha }}^")
+          git fetch --all --tags
+          previous_tag=$(git rev-list --tags='v[0-9]*' --max-count=1 "${{ github.sha }}")
+          previous_tag=$(git describe --tags --abbrev=0 "${previous_tag}")
           echo "::set-output name=tag::$previous_tag"
 
       - name: Generate Changelog
