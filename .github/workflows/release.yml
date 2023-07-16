@@ -75,7 +75,9 @@ jobs:
         run: npm install
       - name: Deploy to GitHub Pages
         id: deployment
-        run: npm run deploy -- -m "Deploy ${{ needs.release.outputs.release_v }} to GitHub Pages"
+        run: |
+          git remote add origin https://github.com/${{ github.repository }}.git
+          npm run deploy -- -m "Deploy ${{ needs.release.outputs.release_v }} to GitHub Pages"
       - name: Set deployment outputs
         id: set_deployment_outputs
         run: |
