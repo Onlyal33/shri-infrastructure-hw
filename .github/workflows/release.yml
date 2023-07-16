@@ -26,10 +26,9 @@ jobs:
       - name: Get current release tag info
         id: current_release
         run: |
-          current_tag=${{ github.ref }}
-          tag_info=$(git show -s --format='{"Version": "%(tag)\nAuthor": "%(authorname)\nDate": "%(authordate)"}' $current_tag)
-          echo "::set-output name=current_release::$tag_info"
-          echo "::set-output name=tag::$current_tag"
+          current_release=$(git show -s --format='{"Version": "%(tag)\nAuthor": "%(authorname)\nDate": "%(authordate)"}' ${{ github.ref }})
+          echo "current_release=$current_release" >> $GITHUB_OUTPUT
+          echo "tag=${{ github.ref }}" >> $GITHUB_OUTPUT
 
       - name: Get previous release tag
         id: previous_release
@@ -37,15 +36,16 @@ jobs:
           git fetch --all --tags
           previous_tag=$(git rev-list --tags='v[0-9]*' --max-count=1 "${{ github.sha }}")
           previous_tag=$(git describe --tags --abbrev=0 "${previous_tag}")
-          echo "::set-output name=tag::$previous_tag"
+          echo $previous_tag
+          echo "tag=$previous_tag" >> $GITHUB_OUTPUT
 
       - name: Generate Changelog
         id: changelog
         run: |
           previous_tag=${{ steps.previous_release.outputs.tag }}
           current_tag=${{ steps.current_release.outputs.tag }}
-          changelog=$(git log --pretty=full $previous_tag..$current_tag)
-          echo "::set-output name=changelog::$changelog"
+          changelog=$(git log --pretty $previous_tag...$current_tag)
+          echo "changelog=$changelog" >> $GITHUB_OUTPUT
 
       - name: Create or update release issue
         id: release_issue
@@ -58,7 +58,7 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/issues \
             -d '{"title":"Release: ${{ steps.current_release.outputs.tag }}","body":"${{ steps.current_release.outputs.tag_info }}, Changelog:\n\n${{ steps.changelog.outputs.changelog }}","labels":["RELEASE"]}')
           number=$(echo "$response" | jq -r '.number')
-          echo "::set-output name=issue_number::$number"
+          echo "issue_number=$number" >> $GITHUB_OUTPUT
 
   ci:
     uses: ./.github/workflows/ci.yml
@@ -97,7 +97,7 @@ jobs:
       - name: Set deployment outputs
         id: set_deployment_outputs
         run: |
-          echo "::set-output name=run_id::${{ github.run_id }}"
+          echo "run_id=${{ github.run_id }}" >> $GITHUB_OUTPUT
 
   post-deploy:
     needs: [release, deploy]
@@ -112,7 +112,7 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ needs.deploy.outputs.run_id }}/jobs)
           completed_at=$(echo "$jobs" | jq -r '.jobs[] | select(.name == "deploy") | .steps[] | select(.name == "Deploy to GitHub Pages") | .completed_at')
-          echo "::set-output name=completed_at::$completed_at"
+          echo "completed_at=$completed_at" >> $GITHUB_OUTPUT
       - name: Add deployment info to release issue
         run: |
           curl -L \
