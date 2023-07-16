@@ -9,7 +9,7 @@ jobs:
       - name: Check issue label and name
         id: check_label
         run: |
-          if echo "${{ github.event.issue.title }}" | grep -E -q '^v[0-9]+$' && ${{ contains(github.event.issue.labels.*.name, 'RELEASE')}}; then
+          if ${{ startsWith(github.event.issue.title, 'v') && contains(github.event.issue.labels.*.name, 'RELEASE')}}; then
             echo "run_deploy=true" >> $GITHUB_OUTPUT
           fi
   deploy:
