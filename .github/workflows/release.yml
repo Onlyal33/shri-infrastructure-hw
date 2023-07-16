@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -28,8 +30,7 @@ jobs:
         id: body
         run: |
           current_release=$(git show -s --format="version: ${{ github.ref_name }}%nAuthor: %an%nDate: %ad" ${{ github.ref }})
-          git fetch --all --tags
-          previous_tag=$(git describe --abbrev=0 --tags `git rev-list --tags='v[0-9]+' --skip=1 --max-count=1`)
+          previous_tag=$(git describe --abbrev=0 --tags `git rev-list --tags='v[0-9]*' --skip=1 --max-count=1`)
           changelog=$(git log --format="%h: %s %b" $previous_tag...${{ github.ref_name }})
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "body<<$EOF" >> $GITHUB_OUTPUT
