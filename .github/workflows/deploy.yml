@@ -60,11 +60,10 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"\
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ needs.deploy.outputs.run_id }}/jobs)
-          completed_at=$(echo "$jobs" | jq -r '.jobs[] | select(.name == "deploy") | .steps[] | select(.name == "Deploy to GitHub Pages") | .completed_at')
+          echo $jobs
+          completed_at=$(echo "$jobs" | jq -r '.jobs[] | select(.name == "deploy") | .steps[] | select(.name == "deploy to gh-pages") | .completed_at')
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "body<<$EOF" >> $GITHUB_OUTPUT
-          echo "Deployment info: " >> $GITHUB_OUTPUT
-          echo "Link to gh-pages: ${{ needs.deploy.outputs.url }}" >> $GITHUB_OUTPUT
           echo "Deployed at: $completed_at" >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
 
