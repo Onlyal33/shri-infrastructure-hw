@@ -26,7 +26,7 @@ jobs:
       - name: Get tags
         id: tags
         run: |
-          current_release=$(git show -s --format='{"Version": "%(tag)\nAuthor": "%(authorname)\nDate": "%(authordate)"}' ${{ github.ref }})
+          current_release=$(git show -s --format="Version: %gd%nAuthor: %an%nDate: %ad" ${{ github.ref }})
           echo $current_release
           git fetch --all --tags
           previous_tag=$(git describe --abbrev=0 --tags `git rev-list --tags='v[0-9]*' --skip=1 --max-count=1`)
@@ -37,7 +37,7 @@ jobs:
       - name: Generate Changelog
         id: changelog
         run: |
-          changelog=$(git log --pretty ${{ steps.tags.outputs.previous_tag }}...${{ steps.tags.outputs.current_tag }})
+          changelog=$(git log --format="%h: %s %b" ${{ steps.tags.outputs.previous_tag }}...${{ steps.tags.outputs.current_tag }})
           echo "changelog=$changelog" >> $GITHUB_OUTPUT
 
       - name: Create or update release issue
