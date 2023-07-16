@@ -30,33 +30,36 @@ jobs:
           current_release=$(git show -s --format="Version: ${{ github.ref_name }}%nAuthor: %an%nDate: %ad" ${{ github.ref }})
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "current_release<<$EOF" >> $GITHUB_OUTPUT
+          echo "Release: " >> $GITHUB_OUTPUT
           echo "$current_release" >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
           git fetch --all --tags
           previous_tag=$(git describe --abbrev=0 --tags `git rev-list --tags='v[0-9]*' --skip=1 --max-count=1`)
           echo "previous_tag=$previous_tag" >> $GITHUB_OUTPUT
 
-      - name: Generate Changelog
-        id: changelog
+      - name: Generate Body
+        id: body
         run: |
           changelog=$(git log --format="%h: %s %b" ${{ steps.tags.outputs.previous_tag }}...${{ steps.tags.outputs.current_tag }})
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "changelog<<$EOF" >> $GITHUB_OUTPUT
+          echo "body<<$EOF" >> $GITHUB_OUTPUT
+          echo ${{ steps.tags.outputs.current_release }} >> $GITHUB_OUTPUT
+          echo "Changelog:\n\n" >> $GITHUB_OUTPUT
           echo "$changelog" >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
 
       - name: Create or update release issue
         id: release_issue
         run: |
-          echo "${{ toJson(steps.tags.outputs.current_release) }}, Changelog:\n\n${{ toJson(steps.changelog.outputs.changelog) }}"
-          echo "Release: ${{ toJson(steps.tags.outputs.current_tag) }}"
+          echo ${{ toJson(steps.body.outputs.body) }}
+          echo ${{ toJson(steps.tags.outputs.current_tag) }}
           response=$(curl -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/${{ github.repository }}/issues \
-            -d '{"title":"Release: ${{ toJson(steps.tags.outputs.current_tag) }}","body":"${{ toJson(steps.tags.outputs.current_release) }}, Changelog:\n\n${{ toJson(steps.changelog.outputs.changelog) }}","labels":["RELEASE"]}')
+            -d '{"title":${{ toJson(steps.tags.outputs.current_tag) }},"body":${{ toJson(steps.body.outputs.body) }},"labels":["RELEASE"]}')
           echo $response
           number=$(echo "$response" | jq -r '.number')
           echo "issue_number=$number" >> $GITHUB_OUTPUT
