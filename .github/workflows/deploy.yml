@@ -9,7 +9,7 @@ jobs:
       - name: Check issue label and name
         id: check_label
         run: |
-          echo [[ ${{ github.event.issue.title }} =~ ^v[0-9]+$ ]]
+          echo [[ "${{ github.event.issue.title }}" =~ ^v[0-9]+$ ]]
           if ${{ contains(github.event.issue.labels.*.name, 'RELEASE')}} && [[ ${{ github.event.issue.title }} =~ ^v[0-9]+$ ]]; then
             echo "run_deploy=true" >> $GITHUB_OUTPUT
           else
