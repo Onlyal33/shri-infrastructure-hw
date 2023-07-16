@@ -55,8 +55,7 @@ jobs:
       - name: Create or update release issue
         id: release_issue
         run: |
-          echo ${{ !steps.r_issue.outputs.issue_number }}
-          if ${{ !steps.r_issue.outputs.issue_number }}; then
+          if ${{ steps.r_issue.outputs.issue_number != 'null'}}; then
             curl -L \
               -X PATCH \
               -H "Accept: application/vnd.github+json" \
