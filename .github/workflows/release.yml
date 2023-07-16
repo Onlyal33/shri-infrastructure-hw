@@ -28,13 +28,13 @@ jobs:
         run: |
           current_release=$(git show -s --format="Version: ${{ github.ref_name }}%nAuthor: %an%nDate: %ad" ${{ github.ref }})
           git fetch --all --tags
-          previous_tag=$(git describe --abbrev=0 --tags `git rev-list --tags='v[0-9]*' --skip=1 --max-count=1`)
+          previous_tag=$(git describe --abbrev=0 --tags `git rev-list --tags='v[0-9]+' --skip=1 --max-count=1`)
           changelog=$(git log --format="%h: %s %b" $previous_tag...${{ github.ref_name }})
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "body<<$EOF" >> $GITHUB_OUTPUT
-          echo "Release: " >> $GITHUB_OUTPUT
-          echo "$current_release" >> $GITHUB_OUTPUT
-          echo "Changelog:\n\n" >> $GITHUB_OUTPUT
+          echo "Release: $current_release" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "Changelog:" >> $GITHUB_OUTPUT
           echo "$changelog" >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
           echo "current_tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
@@ -48,7 +48,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/${{ github.repository }}/issues \
-            -d '{"title":${{ toJson(steps.body.outputs.current_tag) }},"body":${{ toJson(steps.body.outputs.body) }},"labels":["RELEASE"]}')
+            -d '{"title":${{ toJson(steps.body.outputs.current_tag) }},"body":${{ toJson(steps.body.outputs.body) }},"labels":["RC"]}')
           number=$(echo "$response" | jq -r '.number')
           echo "issue_number=$number" >> $GITHUB_OUTPUT
 
@@ -56,6 +56,10 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   deploy:
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     needs: release
     environment:
       name: github-pages
