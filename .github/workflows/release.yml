@@ -57,10 +57,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   deploy:
-    needs: release
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    needs: [release, ci]
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.deployment.outputs.page_url }}
