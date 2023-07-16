@@ -1,8 +1,7 @@
 name: Deploy
 on:
   issues:
-    types:
-      - labeled
+    types: [labeled]
 jobs:
   check-release-label:
     runs-on: ubuntu-latest
