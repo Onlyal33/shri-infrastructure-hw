@@ -5,6 +5,8 @@ on:
 jobs:
   check-release-label:
     runs-on: ubuntu-latest
+    outputs:
+      run_deploy: ${{ steps.check_label.outputs.run_deploy }}
     steps:
       - name: Check issue label and name
         id: check_label
@@ -16,7 +18,7 @@ jobs:
     needs: check-release-label
     permissions:
       contents: write
-    if: ${{ needs.check-release-label.outputs.run_deploy == 'true' }}
+    if: ${{ needs.check-release-label.outputs.run_deploy }}
     runs-on: ubuntu-latest
     outputs:
       url: ${{ steps.deployment.outputs.page_url }}
