@@ -11,7 +11,7 @@ jobs:
         run: |
           THE_REGEX='^v[0-9]+$'
           echo [[ ${{ github.event.issue.title }} =~ $THE_REGEX ]]
-          if [[ ${{ github.event.issue.title }} =~ $THE_REGEX ]] && ${{ contains(github.event.issue.labels.*.name, 'RELEASE')}}; then
+          if [[ ${{ github.event.issue.title }} =~ $THE_REGEX && ${{ contains(github.event.issue.labels.*.name, 'RELEASE')}} ]]; then
             echo "run_deploy=true" >> $GITHUB_OUTPUT
           else
             echo "run_deploy=false" >> $GITHUB_OUTPUT
